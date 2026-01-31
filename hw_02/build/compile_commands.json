@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/workspace/cpp_learn/otus-cpp-basics/hw_02/build",
+  "command": "/usr/bin/g++ -g -std=gnu++17 -o CMakeFiles/hello_world.dir/hello_world.cpp.o -c /workspace/cpp_learn/otus-cpp-basics/hw_02/hello_world.cpp",
+  "file": "/workspace/cpp_learn/otus-cpp-basics/hw_02/hello_world.cpp",
+  "output": "CMakeFiles/hello_world.dir/hello_world.cpp.o"
+},
+{
+  "directory": "/workspace/cpp_learn/otus-cpp-basics/hw_02/build",
+  "command": "/usr/bin/g++ -g -std=gnu++17 -o CMakeFiles/hello_world.dir/example.cpp.o -c /workspace/cpp_learn/otus-cpp-basics/hw_02/example.cpp",
+  "file": "/workspace/cpp_learn/otus-cpp-basics/hw_02/example.cpp",
+  "output": "CMakeFiles/hello_world.dir/example.cpp.o"
+},
+{
+  "directory": "/workspace/cpp_learn/otus-cpp-basics/hw_02/build",
+  "command": "/usr/bin/g++ -g -std=gnu++17 -o CMakeFiles/hello_world.dir/move_me_out.cpp.o -c /workspace/cpp_learn/otus-cpp-basics/hw_02/move_me_out.cpp",
+  "file": "/workspace/cpp_learn/otus-cpp-basics/hw_02/move_me_out.cpp",
+  "output": "CMakeFiles/hello_world.dir/move_me_out.cpp.o"
+}
+]

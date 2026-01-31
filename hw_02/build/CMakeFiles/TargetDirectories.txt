@@ -1,0 +1,3 @@
+/workspace/cpp_learn/otus-cpp-basics/hw_02/build/CMakeFiles/hello_world.dir
+/workspace/cpp_learn/otus-cpp-basics/hw_02/build/CMakeFiles/edit_cache.dir
+/workspace/cpp_learn/otus-cpp-basics/hw_02/build/CMakeFiles/rebuild_cache.dir
