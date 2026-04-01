@@ -1,0 +1,48 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build directories
+build/
+Build/
+bin/
+x64/
+x86/
+[Dd]ebug/
+[Rr]elease/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# IDE and Editor specific
+.vs/          # Visual Studio
+.idea/        # CLion / JetBrains
+.vscode/     # VS Code (optional: keep if sharing settings)
+*.vscode/
+*.swp         # Vim

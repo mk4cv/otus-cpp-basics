@@ -1,8 +1,4 @@
 # ninja log v7
-1	399	1769870442838720450	CMakeFiles/hello_world.dir/hello_world.cpp.o	dd3ed7bf4302148f
-2	404	1769870442842831268	CMakeFiles/hello_world.dir/example.cpp.o	3765960f51b2d1a5
-2	398	1769873630728871782	CMakeFiles/hello_world.dir/move_me_out.cpp.o	7ced6089f0e89309
-399	510	1769873631123620098	hello_world	9db12fe6265155fd
 3	522	1769873649271106006	CMakeFiles/hello_world.dir/hello_world.cpp.o	dd3ed7bf4302148f
 3	528	1769873649271106006	CMakeFiles/hello_world.dir/example.cpp.o	3765960f51b2d1a5
 4	538	1769873649271106006	CMakeFiles/hello_world.dir/move_me_out.cpp.o	7ced6089f0e89309
