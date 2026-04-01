@@ -1,6 +1,3 @@
-# Prerequisites
-*.d
-
 # Compiled Object files
 *.slo
 *.lo
@@ -11,31 +8,41 @@
 *.gch
 *.pch
 
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
 # Compiled Static libraries
 *.lai
 *.la
 *.a
 *.lib
 
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
 # Executables
 *.exe
 *.out
 *.app
 
-# debug information files
-*.dwo
+# Build directories
+build/
+Build/
+bin/
+x64/
+x86/
+[Dd]ebug/
+[Rr]elease/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# IDE and Editor specific
+.vs/          # Visual Studio
+.idea/        # CLion / JetBrains
+.vscode/     # VS Code (optional: keep if sharing settings)
+*.vscode/
+*.swp         # Vim
