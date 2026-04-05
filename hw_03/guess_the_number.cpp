@@ -35,24 +35,29 @@ Args parse_args(int argc, char* argv[]) {
             } // Ошибка, одноврменно заданы аргументы level и max (max_target_value уже определен)
             if (i + 1 < argc) {
                 // Присвоение максимального значения загаданного числа в зависимости от заданного уровня
-                level = std::stoi(argv[++i]); 
-                switch (level) {
-                    case 1:
-                        max_target_value = 10;
-                        break;
-                    case 2:
-                        max_target_value = 50;
-                        break;
-                    case 3:
-                        max_target_value = 100;
-                        break;
-                    default:
-                        max_target_value = 10;
+                try {
+                    level = std::stoi(argv[++i]); 
+                    switch (level) {
+                        case 1:
+                            max_target_value = 10;
+                            break;
+                        case 2:
+                            max_target_value = 50;
+                            break;
+                        case 3:
+                            max_target_value = 100;
+                            break;
+                        default:
+                            max_target_value = 0;
+                    }
+                    std::cout << "Maximum value of the hidden number is determined by the argument 'level' " << std::endl;
+                } catch (const std::invalid_argument&) {
+                    std::cout <<  "Error: argument 'level' requires int value" << std::endl;
+                    return {false, only_table, max_target_value};
                 }
-                std::cout << "Maximum value of the hidden number is determined by the argument 'level' " << std::endl;
             }
             else {
-                std::cout <<  "Error: argument 'level' requires a value" << std::endl;
+                std::cout <<  "Error: argument 'level' requires int  value" << std::endl;
                 return {false, only_table, max_target_value};
             }
         } 
@@ -63,10 +68,15 @@ Args parse_args(int argc, char* argv[]) {
             } // Ошибка, одноврменно заданы аргументы level и max (max_target_value уже определен)
             if (i + 1 < argc) {
                 // Присвоение максимального значения загаданного числа по соответствущему аргументу
-                max_target_value = std::stoi(argv[++i]);
-                std::cout << "Maximum value of the hidden number is determined by the argument 'max' " << std::endl;
+                try {
+                    max_target_value = std::stoi(argv[++i]);
+                    std::cout << "Maximum value of the hidden number is determined by the argument 'max' " << std::endl;
+                } catch (const std::invalid_argument&) {
+                    std::cout <<  "Error: argument 'level' requires int value" << std::endl;
+                    return {false, only_table, max_target_value};
+                }
             } else {
-                std::cout <<  "Error: argument 'max' requires a value" << std::endl;
+                std::cout <<  "Error: argument 'max' requires int value" << std::endl;
                 return {false, only_table, max_target_value};
             }
         }
@@ -98,10 +108,7 @@ void write_high_scores_table(const std::string high_scores_filename,
             }
         }
         readFile.close();
-    } else {
-        std::cout << "Error: could not open file for read: " << high_scores_filename << std::endl;
-        return;
-    } // Ошибка чтения файла
+    }
     // Добавление или обновление записи пользователя
     auto it = high_scores_table.find(username);
     // Если пользователя нет в файле или счет лучше - запись
@@ -168,11 +175,11 @@ int game(int max_target_value) {
     while (current_value != target_value) {
         std::cin >> current_value;
         if (current_value < target_value) {
-			std::cout << "less than " << current_value << std::endl;
+			std::cout << "target value is greater than " << current_value << std::endl;
             attempts_count += 1;
 		}
 		else if (current_value > target_value) {
-			std::cout << "greater than " << current_value << std::endl;
+			std::cout << "target value is less than " << current_value << std::endl;
             attempts_count += 1;
 		}
 		else {
