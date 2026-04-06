@@ -72,7 +72,7 @@ Args parse_args(int argc, char* argv[]) {
                     max_target_value = std::stoi(argv[++i]);
                     std::cout << "Maximum value of the hidden number is determined by the argument 'max' " << std::endl;
                 } catch (const std::invalid_argument&) {
-                    std::cout <<  "Error: argument 'level' requires int value" << std::endl;
+                    std::cout <<  "Error: argument 'max' requires int value" << std::endl;
                     return {false, only_table, max_target_value};
                 }
             } else {
