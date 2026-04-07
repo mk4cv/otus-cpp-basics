@@ -44,5 +44,6 @@ compile_commands.json
 .vs/          # Visual Studio
 .idea/        # CLion / JetBrains
 .vscode/     # VS Code (optional: keep if sharing settings)
+samples
 *.vscode/
 *.swp         # Vim
