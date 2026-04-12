@@ -7,7 +7,10 @@
 
 // Базовый класс для статистических вычислений
 class IStatistics {
+
 public:
+    // Конструктор
+    IStatistics(const char* name, size_t count = 0): m_name(name), m_count(count) {}
     // Деструктор !!!
     virtual ~IStatistics() {}
     // Виртуальная функция обработки каждого полученного числа из входной последовательности
@@ -15,8 +18,16 @@ public:
     // Виртуальная функция возврата результатов вычислений
     virtual double eval() const = 0;
     // Виртуальная функция возврата названия статистического вычисления
-    virtual const char * name() const = 0;
+    virtual const char * name() const {
+        return m_name;
+    };
+
+protected:
+    const char* m_name; // Название статистического вычисления
+    size_t m_count; // Число обработанных элементов последовательности    
+
 };
+
 
 // Класс Min
 // Вычисление минимального значения в последовательности
@@ -25,7 +36,7 @@ public:
     // Конструктор
     // Инициализация m_min максимальным возможным значением для типа double
     // Любое значение из последовательности будет меньше или равно начальному значению m_min
-    Min(): m_min{std::numeric_limits<double>::max()}, m_count{0} {}
+    Min(): IStatistics("min"), m_min{std::numeric_limits<double>::max()} {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Определение наименьшего элемента последовательности
     void update(double next) override {
@@ -39,14 +50,9 @@ public:
         // Если последовательность пустая, возврат 0.0
         return m_count > 0 ? m_min : 0.0;
     }
-    // Функция получения названия статистического вычисления
-    const char * name() const override {
-        return "min";
-    }
     
 private:
     double m_min;   // Текущее минимальное значение
-    size_t m_count; // Число обработанных элементов последовательности
 };
 
 // Класс Max
@@ -56,7 +62,7 @@ public:
     // Конструктор
     // Инициализация m_max минимально возможным значением для типа double
     // Любое значение из последовательности будет больше или равно начальному значению m_max
-    Max(): m_max{std::numeric_limits<double>::lowest()}, m_count{0} {}
+    Max(): IStatistics("max"), m_max{std::numeric_limits<double>::lowest()} {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Определение наибольшего элемента последовательности
     void update(double next) override {
@@ -70,14 +76,9 @@ public:
          // Если последовательность пустая, возврат 0.0
         return m_count > 0 ? m_max : 0.0;
     }
-    // Функция получения названия статистического вычисления
-    const char * name() const override {
-        return "max";
-    }
     
 private:
     double m_max;   // Текущее максимальное значение
-    size_t m_count; // Число обработанных элементов последовательности
 };
 
 // Класс Mean
@@ -86,7 +87,7 @@ class Mean : public IStatistics {
 public:
     // Конструктор
     // Инициализация суммы и счетчика нулевыми значениями
-    Mean(): m_sum{0.0}, m_count{0} {}
+    Mean(): IStatistics("mean"), m_sum{0.0} {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Вычисление суммы всех элементов последовательности
     void update(double next) override {
@@ -98,14 +99,9 @@ public:
         // // Если последовательность пустая, возврат 0.0
         return m_count > 0 ? m_sum / m_count : 0.0;
     }
-    // Функция получения названия статистического вычисления
-    const char * name() const override {
-        return "mean";
-    }
-    
+
 private:
     double m_sum;   // Сумма всех элементов последовательности
-    size_t m_count; // Число обработанных элементов последовательности
 };
 
 // Класс Std
@@ -114,7 +110,7 @@ class Std : public IStatistics {
 public:
     // Конструктор
     // Инициализация суммы, суммы квадратов и счетчика нулевыми значениями
-    Std(): m_sum{0.0}, m_sum_sq{0.0}, m_count{0} {}
+    Std(): IStatistics("std"), m_sum{0.0}, m_sum_sq{0.0} {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Вычисление суммы и суммы квадратов всех элементов последовательности
     void update(double next) override {
@@ -134,15 +130,10 @@ public:
         // Проверка variance > 0 нужна для защиты от ошибок округления
         return variance > 0 ? std::sqrt(variance) : 0.0;
     }
-    // Функция получения названия статистического вычисления
-    const char * name() const override {
-        return "std";
-    }
     
 private:
     double m_sum;    // Сумма всех элементов последовательности
     double m_sum_sq;  // Сумма квадратов всех элементов последовательности
-    size_t m_count;  // Число обработанных элементов последовательности
 };
 
 // Класс Percentile
@@ -151,7 +142,7 @@ class Percentile : public IStatistics {
 public:
     // Конструктор
     // Получение значений процентиля
-    Percentile(double percentile): m_percentile{percentile}, m_name{} {}
+    Percentile(const char* name, double percentile): IStatistics(name), m_percentile{percentile}, m_name{} {}
    // Функция обработки каждого полученного числа из входной последовательности
    // Добавление всех элементов последовательности в массив
     void update(double next) override {
@@ -178,15 +169,7 @@ public:
         double fraction = calc_index - lower_index;  // Дробная часть индекса
         return sorted_values[lower_index] + fraction * (sorted_values[upper_index] - sorted_values[lower_index]);
     }
-    // Функция получения названия статистического вычисления
-    const char * name() const override {
-        return m_name.c_str();
-    }
-    // Функция установки имени (для вызова в конструкторах дочерних классов)
-    void set_name(const char* name) {
-        m_name = name;
-    }
-    
+
 private:
     double m_percentile;          // Значение процентиля
     std::vector<double> m_values; // Массив значений всех элементов последовательности
@@ -198,10 +181,8 @@ private:
 class Percentile_90 : public Percentile {
 public:
     // Конструктор
-    // Передача значения процентиля и названия статистического вычисления в базовый класс Percentile
-    Percentile_90() : Percentile(90.0) {
-        set_name("percentile_90");
-    }
+    // Передача названия статистического вычисления и значения процентиля в базовый класс Percentile
+    Percentile_90() : Percentile("percentile_90", 90.0) {}
 };
 
 // Класс Percentile_95
@@ -209,10 +190,8 @@ public:
 class Percentile_95 : public Percentile {
 public:
     // Конструктор
-    // Передача значения процентиля и названия статистического вычисления в базовый класс Percentile
-    Percentile_95() : Percentile(95.0) {
-        set_name("percentile_95");
-    }
+    // Передача названия статистического вычисления и значения процентиля в базовый класс Percentile
+    Percentile_95() : Percentile("percentile_95", 95.0) {}
 };
 
 
