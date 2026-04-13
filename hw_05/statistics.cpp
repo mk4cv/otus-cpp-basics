@@ -10,22 +10,22 @@ class IStatistics {
 
 public:
     // Конструктор
-    IStatistics(const char* name, size_t count = 0): m_name(name), m_count(count) {}
+    IStatistics(const char* name, double m_double_value, size_t count = 0): m_name(name), m_double_value(m_double_value), m_count(count) {}
     // Деструктор !!!
     virtual ~IStatistics() {}
     // Виртуальная функция обработки каждого полученного числа из входной последовательности
     virtual void update(double next) = 0;
     // Виртуальная функция возврата результатов вычислений
     virtual double eval() const = 0;
-    // Виртуальная функция возврата названия статистического вычисления
-    virtual const char * name() const {
+    // Функция возврата названия статистического вычисления
+    const char * name() const {
         return m_name;
     };
 
 protected:
     const char* m_name; // Название статистического вычисления
     size_t m_count; // Число обработанных элементов последовательности    
-
+    double m_double_value; // Универсальная переменная типа double
 };
 
 
@@ -36,23 +36,20 @@ public:
     // Конструктор
     // Инициализация m_min максимальным возможным значением для типа double
     // Любое значение из последовательности будет меньше или равно начальному значению m_min
-    Min(): IStatistics("min"), m_min{std::numeric_limits<double>::max()} {}
+    Min(): IStatistics("min", std::numeric_limits<double>::max()) {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Определение наименьшего элемента последовательности
     void update(double next) override {
-        if (next < m_min) {
-            m_min = next;
+        if (next < m_double_value) {
+            m_double_value = next;
         } // Если полученное значение меньше текущего значения минимума - обновление минимума
         ++m_count;  // Увеличение счетчика обработанных элементов последовательности
     }
     // Функция  получения результата: возврат найденного значения минимума
     double eval() const override {
         // Если последовательность пустая, возврат 0.0
-        return m_count > 0 ? m_min : 0.0;
+        return m_count > 0 ? m_double_value : 0.0;
     }
-    
-private:
-    double m_min;   // Текущее минимальное значение
 };
 
 // Класс Max
@@ -62,19 +59,19 @@ public:
     // Конструктор
     // Инициализация m_max минимально возможным значением для типа double
     // Любое значение из последовательности будет больше или равно начальному значению m_max
-    Max(): IStatistics("max"), m_max{std::numeric_limits<double>::lowest()} {}
+    Max(): IStatistics("max", std::numeric_limits<double>::lowest()) {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Определение наибольшего элемента последовательности
     void update(double next) override {
-        if (next > m_max) {
-            m_max = next;
+        if (next > m_double_value) {
+            m_double_value = next;
         } // Если полученное значение больше текущего значения максимума - обновление максимума
         ++m_count; // Увеличение счетчика обработанных элементов последовательности
     }
     // Функция  получения результата: возврат найденного значение минимума
     double eval() const override {
          // Если последовательность пустая, возврат 0.0
-        return m_count > 0 ? m_max : 0.0;
+        return m_count > 0 ? m_double_value : 0.0;
     }
     
 private:
@@ -87,21 +84,18 @@ class Mean : public IStatistics {
 public:
     // Конструктор
     // Инициализация суммы и счетчика нулевыми значениями
-    Mean(): IStatistics("mean"), m_sum{0.0} {}
+    Mean(): IStatistics("mean", 0.0) {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Вычисление суммы всех элементов последовательности
     void update(double next) override {
-        m_sum += next;  // Суммирование элементов
+        m_double_value += next;  // Суммирование элементов
         ++m_count;  // Увеличение счетчика обработанных элементов последовательности
     }
     // Функция  получения результата: возврат среднего арифметического значения
     double eval() const override {
         // // Если последовательность пустая, возврат 0.0
-        return m_count > 0 ? m_sum / m_count : 0.0;
+        return m_count > 0 ? m_double_value / m_count : 0.0;
     }
-
-private:
-    double m_sum;   // Сумма всех элементов последовательности
 };
 
 // Класс Std
@@ -110,12 +104,12 @@ class Std : public IStatistics {
 public:
     // Конструктор
     // Инициализация суммы, суммы квадратов и счетчика нулевыми значениями
-    Std(): IStatistics("std"), m_sum{0.0}, m_sum_sq{0.0} {}
+    Std(): IStatistics("std", 0.0), m_double_value_2{0.0} {}
     // Функция обработки каждого полученного числа из входной последовательности
     // Вычисление суммы и суммы квадратов всех элементов последовательности
     void update(double next) override {
-        m_sum += next;        // Суммирование элементов
-        m_sum_sq += next * next; // Суммирование квадратов элементов
+        m_double_value += next;        // Суммирование элементов
+        m_double_value_2 += next * next; // Суммирование квадратов элементов
         ++m_count;            // Увеличение счетчика обработанных элементов последовательности
     }
     // Функция  получения результата
@@ -124,16 +118,15 @@ public:
         if (m_count <= 1) {
             return 0.0;
         } // Если длина последовательности меньше 2-х, возврат 0.0
-        double mean = m_sum / m_count; // Вычисление среднего арифметического значения
-        double variance = (m_sum_sq / m_count) - (mean * mean); // Вычисление дисперсии 
+        double mean = m_double_value / m_count; // Вычисление среднего арифметического значения
+        double variance = (m_double_value_2/ m_count) - (mean * mean); // Вычисление дисперсии 
         // Стандартное отклонение = квадратный корень из дисперсии
         // Проверка variance > 0 нужна для защиты от ошибок округления
         return variance > 0 ? std::sqrt(variance) : 0.0;
     }
     
 private:
-    double m_sum;    // Сумма всех элементов последовательности
-    double m_sum_sq;  // Сумма квадратов всех элементов последовательности
+    double m_double_value_2;  // Сумма квадратов всех элементов последовательности
 };
 
 // Класс Percentile
@@ -142,7 +135,7 @@ class Percentile : public IStatistics {
 public:
     // Конструктор
     // Получение значений процентиля
-    Percentile(const char* name, double percentile): IStatistics(name), m_percentile{percentile}, m_name{} {}
+    Percentile(const char* name, double percentile): IStatistics(name, percentile) {}
    // Функция обработки каждого полученного числа из входной последовательности
    // Добавление всех элементов последовательности в массив
     void update(double next) override {
@@ -156,7 +149,7 @@ public:
         } // Если последовательность пустая, возврат 0.0
         std::vector<double> sorted_values = m_values; // Создание копии массива для сортировки (оригинал не модифицируем)
         std::sort(sorted_values.begin(), sorted_values.end()); // Сортировка значений по возрастанию
-        double calc_index = (m_percentile / 100.0) * (sorted_values.size() - 1); // Вычисление индекса процентиля в отсортированном массиве
+        double calc_index = (m_double_value / 100.0) * (sorted_values.size() - 1); // Вычисление индекса процентиля в отсортированном массиве
         size_t lower_index = static_cast<size_t>(std::floor(calc_index));  // Определение нижнего индекса (округление вниз)
         size_t upper_index = static_cast<size_t>(std::ceil(calc_index));   // Определение верхнего индекса (округление вверх)
         // std::cout << "lower index: " << lower_index  << " calc index: " << calc_index << " upper_index: " << upper_index << std::endl; // Для отладки
@@ -171,9 +164,7 @@ public:
     }
 
 private:
-    double m_percentile;          // Значение процентиля
     std::vector<double> m_values; // Массив значений всех элементов последовательности
-    mutable std::string m_name;   // Название статистистического вычисления (mutable, т.к. в базовом классе это константа)
 };
 
 // Класс Percentile_90
