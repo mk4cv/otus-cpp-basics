@@ -74,8 +74,6 @@ public:
         return m_count > 0 ? m_double_value : 0.0;
     }
     
-private:
-    double m_max;   // Текущее максимальное значение
 };
 
 // Класс Mean
