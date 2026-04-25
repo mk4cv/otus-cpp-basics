@@ -40,21 +40,31 @@ public:
     // Оператор присваивания копированием
     // Замена содержимого копией другого контейнера
     SequentialContainer& operator=(const SequentialContainer& other) {
-        if (this != &other) {  // Защита от самоприсваивания
-            delete[] m_data;     // Освобождение текущей памяти
-            m_size = other.m_size;        // Копирование размера
-            m_capacity = other.m_capacity; // Копирование вместимости
-            m_data = new T[m_capacity];   // Выделение новой памяти
-            for (size_t i = 0; i < m_size; ++i) {  
-                m_data[i] = other.m_data[i];
-            } // Копирование элементов
+        if (this != &other) {
+            // Если вместимости достаточно, переиспользование памятя
+            if (m_capacity >= other.m_size) {
+                for (size_t i = 0; i < other.m_size; ++i) {
+                    m_data[i] = other.m_data[i];
+                }
+                m_size = other.m_size;
+            } else {
+                // Если вместимости не хватает, выделение нового буфера
+                delete[] m_data;
+                m_size = other.m_size;
+                m_capacity = other.m_capacity;
+                m_data = new T[m_capacity];
+                for (size_t i = 0; i < m_size; ++i) {
+                    m_data[i] = other.m_data[i];
+                }
+            }
         }
-        return *this;  // Возврат ссылки на текущий объект
+        return *this;
     }
     // Оператор присваивания перемещением (для доп. задания №3):
     // Перенос ресурсов
     SequentialContainer& operator=(SequentialContainer&& other) noexcept {
         if (this != &other) {  // Защита от самоприсваивания
+            SequentialContainer tmp(std::move(*this)); // Перемещение указателя на выделенную память во временный объект
             delete[] m_data;     // Освобождение текущей памяти
             m_data = other.m_data;        // Передача указателя на данные
             m_size = other.m_size;        // Передача  размера
@@ -224,14 +234,14 @@ public:
         // Метод get() для получения значения (альтернатива operator)
         const T& get() const { return *m_ptr; }
     };
-    // Метод begin()
+    // Метод cbegin()
     // Возврат итератора на первый константный элемент
-    const_iterator begin() const {
+    const_iterator cbegin() const {
         return const_iterator(m_data);
     }
-    // Метод end()
+    // Метод cend()
     // Возврат итератора на позицию после последнего константного элемента
-    const_iterator end() const {
+    const_iterator cend() const {
         return const_iterator(m_data + m_size);
     }
 };
@@ -255,17 +265,23 @@ private:
     SinglyNode<T>* m_head;      // Указатель на первый узел списка
     SinglyNode<T>* m_tail;      // Указатель на последний узел
     size_t m_size;         // Текущее количество элементов
+    // Метод полной очистки списка
+    void clear() noexcept {
+        while (m_head) {
+            SinglyNode<T>* tmp = m_head; // Запись указателя на текущий узел
+            m_head = m_head->m_next; // Переход к следующему узлу
+            delete tmp; // Удаление текущего узла
+        }
+        m_tail = nullptr;
+        m_size = 0;
+    }
 public:
     // Конструктор по умолчанию
     SinglyLinkedList() : m_head(nullptr), m_tail(nullptr), m_size(0) {}
     // Деструктор
     // Освобождение всех узлов списка
     ~SinglyLinkedList() {
-        while (m_head) {  // Пока есть узлы
-            SinglyNode<T>* tmp = m_head;  // Запись указателя на текущий узел
-            m_head = m_head->m_next;         // Переход к следующему узлу
-            delete tmp;                  // Удаление текущего узла
-        }
+        clear();  // Очистка текущего списка
     }
     // Конструктор копирования
     // Копирование каждого элемента
@@ -285,14 +301,7 @@ public:
     // Оператор присваивания копированием
     SinglyLinkedList& operator=(const SinglyLinkedList& other) {
         if (this != &other) {
-            while (m_head) {
-                SinglyNode<T>* tmp = m_head;
-                m_head = m_head->m_next;
-                delete tmp;
-            } // Очистка текущнго списка
-            m_tail = nullptr;
-            m_size = 0;
-            
+            clear();  // Очистка текущнго списка
             for (SinglyNode<T>* curr = other.m_head; curr; curr = curr->m_next) {
                 push_back(curr->m_data);
             } // Копирование элементов
@@ -302,11 +311,8 @@ public:
     // Оператор присваивания перемещением
     SinglyLinkedList& operator=(SinglyLinkedList&& other) noexcept {
         if (this != &other) {
-            while (m_head) {
-                SinglyNode<T>* tmp = m_head;
-                m_head = m_head->m_next;
-                delete tmp;
-            } // Очистка текущнго списка
+            SinglyLinkedList tmp(std::move(*this)); // Перемещение указателя на выделенную память во временный объект
+            clear();  // Очистка текущнго списка
             // Передача ресурсов
             m_head = other.m_head;
             m_tail = other.m_tail;
@@ -472,15 +478,15 @@ public:
         // Метод get() для получения значения (альтернатива operator*)
         const T& get() const { return m_node->m_data; }
     };
-    // Метод begin()
+    // Метод cbegin()
     // Возврат итератора на первый константный элемент
-    const_iterator begin() const {
+    const_iterator cbegin() const {
         return const_iterator(m_head);
     }
-    // Метод end()
+    // Метод cend()
     // Возврат итератора на позицию после последнего константного элемента
-    const_iterator end() const {
-        return const_iterator(nullptr);
+    const_iterator cend() const {
+        return const_iterator(nullptr);  // Возврат nullptr как обозначения конца списка
     }
 };
 
@@ -504,17 +510,22 @@ private:
     DoublyNode<T>* m_head;      // Указатель на первый узел
     DoublyNode<T>* m_tail;      // Указатель на последний узел
     size_t m_size;         // // Текущее количество элементов
+    void clear() noexcept {
+        while (m_head) {
+            DoublyNode<T>* tmp = m_head; // Запись указателя на текущий узел
+            m_head = m_head->m_next; // Переход к следующему узлу
+            delete tmp; // Удаление текущего узла
+        }
+        m_tail = nullptr;
+        m_size = 0;
+    }
 public:
     // Конструктор по умолчанию
     DoublyLinkedList() : m_head(nullptr), m_tail(nullptr), m_size(0) {}
     // Деструктор
     // Освобождение всех узлов списка
     ~DoublyLinkedList() {
-        while (m_head) {
-            DoublyNode<T>* tmp = m_head;
-            m_head = m_head->m_next;
-            delete tmp;
-        }
+        clear();
     }
     // Конструктор копирования
     // Копирование каждого элемента
@@ -533,11 +544,7 @@ public:
     // Оператор присваивания копированием
     DoublyLinkedList& operator=(const DoublyLinkedList& other) {
         if (this != &other) {
-            while (m_head) {
-                DoublyNode<T>* tmp = m_head;
-                m_head = m_head->m_next;
-                delete tmp;
-            } // Очистка текущего списка
+            clear(); // Очистка текущего списка
             m_tail = nullptr;
             m_size = 0;
             for (DoublyNode<T>* curr = other.m_head; curr; curr = curr->m_next) {
@@ -549,12 +556,8 @@ public:
     // Оператор присваивания перемещением
     DoublyLinkedList& operator=(DoublyLinkedList&& other) noexcept {
         if (this != &other) {
-            while (m_head) {
-                DoublyNode<T>* tmp = m_head;
-                m_head = m_head->m_next;
-                delete tmp;
-            }
-            // Очистка текущнго списка
+            DoublyLinkedList tmp(std::move(*this)); // Перемещение указателя на выделенную память во временный объект
+            clear(); // Очистка текущего списка
             m_head = other.m_head;
             m_tail = other.m_tail;
             m_size = other.m_size;
@@ -741,15 +744,15 @@ public:
         // Метод get() для получения значения
         const T& get() const { return m_node->m_data; }
     };
-    // Метод begin()
+    // Метод cbegin()
     // Возврат итератора на первый константный элемент
-    const_iterator begin() const {
+    const_iterator cbegin() const {
         return const_iterator(m_head);
     }
-    // Метод end()
+    // Метод cend()
     // Возврат итератора на позицию после последнего константного элемента
-    const_iterator end() const {
-        return const_iterator(nullptr);
+    const_iterator cend() const {
+        return const_iterator(nullptr);  // Возврат nullptr как обозначения конца списка
     }
 };
 
@@ -758,7 +761,7 @@ public:
 template<typename Container>
 void printContainer(const Container& container, const std::string& label) {
     std::cout << label << ": ";  // Вывод текстового примечания
-    for (auto it = container.begin(); it != container.end(); ++it) {  // Обход через итератор
+    for (auto it = container.cbegin(); it != container.cend(); ++it) {  // Обход через константный итератор
         std::cout << *it << " ";  // Вывод значения элемента
     }
     std::cout << "\n";
