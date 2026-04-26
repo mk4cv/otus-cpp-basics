@@ -307,7 +307,7 @@ public:
     SinglyLinkedList& operator=(SinglyLinkedList&& other) noexcept {
         if (this != &other) {
             clear();  // Очистка текущнго списка
-            std::swap(m_head;, other.m_head;;  // Передача головы
+            std::swap(m_head, other.m_head;;  // Передача головы
             std::swap(m_tail, other.m_tail);  // Передача  хвоста
             std::swap(m_size, other.m_size); // Передача  размера
         }
@@ -546,7 +546,7 @@ public:
     DoublyLinkedList& operator=(DoublyLinkedList&& other) noexcept {
         if (this != &other) {
             clear(); // Очистка текущего списка
-            std::swap(m_head;, other.m_head;;  // Передача головы
+            std::swap(m_head, other.m_head;;  // Передача головы
             std::swap(m_tail, other.m_tail);  // Передача  хвоста
             std::swap(m_size, other.m_size); // Передача  размера
         }
@@ -755,6 +755,7 @@ void printContainer(const Container& container, const std::string& label) {
 
 // Главная функция
 // Демонстрация различных режимов работы контейнеров
+#ifndef BUILD_TESTS // Обертка для исключения конфликтов компиляции тестов
 int main() {
     // Тестирование последовательного контейнера
     std::cout << "=== 1. Тест последовательного контейнера ===\n\n";
@@ -852,3 +853,4 @@ int main() {
     
     return 0;
 }
+#endif
