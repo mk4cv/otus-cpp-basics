@@ -64,14 +64,9 @@ public:
     // Перенос ресурсов
     SequentialContainer& operator=(SequentialContainer&& other) noexcept {
         if (this != &other) {  // Защита от самоприсваивания
-            SequentialContainer tmp(std::move(*this)); // Перемещение указателя на выделенную память во временный объект
-            delete[] m_data;     // Освобождение текущей памяти
-            m_data = other.m_data;        // Передача указателя на данные
-            m_size = other.m_size;        // Передача  размера
-            m_capacity = other.m_capacity; // Передача  вместимости
-            other.m_data = nullptr;      // Обнуление источника
-            other.m_size = 0; // Обнуление размера
-            other.m_capacity = 0; // Обнуление вместимости
+            std::swap(m_data, other.m_data);        // Передача указателя на данные
+            std::swap(m_size, other.m_size);        // Передача  размера
+            std::swap(m_capacity, other.m_capacity); // Передача  вместимости
         }
         return *this;  // Возврат ссылки на текущий объект
     }
@@ -311,16 +306,10 @@ public:
     // Оператор присваивания перемещением
     SinglyLinkedList& operator=(SinglyLinkedList&& other) noexcept {
         if (this != &other) {
-            SinglyLinkedList tmp(std::move(*this)); // Перемещение указателя на выделенную память во временный объект
             clear();  // Очистка текущнго списка
-            // Передача ресурсов
-            m_head = other.m_head;
-            m_tail = other.m_tail;
-            m_size = other.m_size;
-            // Обнуление источника
-            other.m_head = nullptr;
-            other.m_tail = nullptr;
-            other.m_size = 0;
+            std::swap(m_head;, other.m_head;;  // Передача головы
+            std::swap(m_tail, other.m_tail);  // Передача  хвоста
+            std::swap(m_size, other.m_size); // Передача  размера
         }
         return *this;
     }
@@ -556,15 +545,10 @@ public:
     // Оператор присваивания перемещением
     DoublyLinkedList& operator=(DoublyLinkedList&& other) noexcept {
         if (this != &other) {
-            DoublyLinkedList tmp(std::move(*this)); // Перемещение указателя на выделенную память во временный объект
             clear(); // Очистка текущего списка
-            m_head = other.m_head;
-            m_tail = other.m_tail;
-            m_size = other.m_size;
-            // Обнуление источника
-            other.m_head = nullptr;
-            other.m_tail = nullptr;
-            other.m_size = 0;
+            std::swap(m_head;, other.m_head;;  // Передача головы
+            std::swap(m_tail, other.m_tail);  // Передача  хвоста
+            std::swap(m_size, other.m_size); // Передача  размера
         }
         return *this;
     }
