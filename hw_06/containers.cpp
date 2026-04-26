@@ -307,7 +307,7 @@ public:
     SinglyLinkedList& operator=(SinglyLinkedList&& other) noexcept {
         if (this != &other) {
             clear();  // Очистка текущнго списка
-            std::swap(m_head, other.m_head;;  // Передача головы
+            std::swap(m_head, other.m_head);  // Передача головы
             std::swap(m_tail, other.m_tail);  // Передача  хвоста
             std::swap(m_size, other.m_size); // Передача  размера
         }
@@ -546,7 +546,7 @@ public:
     DoublyLinkedList& operator=(DoublyLinkedList&& other) noexcept {
         if (this != &other) {
             clear(); // Очистка текущего списка
-            std::swap(m_head, other.m_head;;  // Передача головы
+            std::swap(m_head, other.m_head);  // Передача головы
             std::swap(m_tail, other.m_tail);  // Передача  хвоста
             std::swap(m_size, other.m_size); // Передача  размера
         }
