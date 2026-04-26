@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "containers.hpp"
+#include "containers.cpp"
 #include <stdexcept>
 
 // Класс для отслеживания вызовов деструкторов (для доп. задания №2)
