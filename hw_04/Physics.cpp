@@ -90,11 +90,11 @@ void Physics::processCollision(Ball& a, Ball& b,
     // Генерация частиц пыли (для доп. задания №3)
     Point center_point = (a.getCenter() + b.getCenter()) * 0.5; // Центр столкновения (средняя точка между центрами шаров)
     double base_radius = 10.0; // Базовый радиус пыли
-    auto len = [](const Point& p) {
+    auto speed_culc = [](const Point& p) {
         return std::sqrt(p.x * p.x + p.y * p.y);
     }; // Функция выяисления скорости шара
-    double speed_a = len(a.getVelocity().vector()); // Скорость шара a
-    double speed_b = len(b.getVelocity().vector()); // Скорость шара b
+    double speed_a = speed_culc(a.getVelocity().vector()); // Скорость шара a
+    double speed_b = speed_culc(b.getVelocity().vector()); // Скорость шара b
     double base_speed = (speed_a + speed_b) * 0.5 * 6; // Базовая скорость пыли (средняя скорость столкнувшихся шаров * коэффициент)    
     double lifetime = 0.5; // Время жизни частиц пыли
     Color color = (speed_a < speed_b) ? a.getColor() : b.getColor(); // Цвет пыли (цвет менее быстрого шара)
