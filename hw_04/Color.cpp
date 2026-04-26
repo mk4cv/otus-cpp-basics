@@ -16,3 +16,11 @@ double Color::green() const {
 double Color::blue() const {
     return b;
 }
+
+// Функция чтения объектов из std::istream
+std::istream& operator>>(std::istream& stream, Color& c) {
+    double r, g, b;
+    stream >> r >> g >> b;
+    c = Color(r, g, b);
+    return stream;
+}

@@ -9,7 +9,10 @@ Application::Application(const char* name)
              name,
              sf::Style::Titlebar | sf::Style::Close,
              sf::ContextSettings(0, 0, 4)},
-      view({0., 0.}, 1280, 960, 0.2) {}
+      view({0., 0.}, 1280, 960, 0.2) {
+        window.setVerticalSyncEnabled(false);
+        window.setFramerateLimit(60);  // Отключение VerticalSyncEnabled для корректной работы в WSL
+      }
 
 void Application::run(World& world) {
     time = std::chrono::system_clock::now();

@@ -1,4 +1,5 @@
 #include "Physics.hpp"
+#include <random>
 
 double dot(const Point& lhs, const Point& rhs) {
     return lhs.x * rhs.x + lhs.y * rhs.y;
@@ -23,6 +24,9 @@ void Physics::update(std::vector<Ball>& balls, const size_t ticks) const {
 void Physics::collideBalls(std::vector<Ball>& balls) const {
     for (auto a = balls.begin(); a != balls.end(); ++a) {
         for (auto b = std::next(a); b != balls.end(); ++b) {
+            // Пропуск призрачных шаров (для доп. задания №2)
+            if (!a->isCollidable() || !b->isCollidable())
+                continue;
             const double distanceBetweenCenters2 =
                 distance2(a->getCenter(), b->getCenter());
             const double collisionDistance = a->getRadius() + b->getRadius();
@@ -82,4 +86,29 @@ void Physics::processCollision(Ball& a, Ball& b,
     // задаем новые скорости мячей после столкновения
     a.setVelocity(Velocity(aV - normal * p * a.getMass()));
     b.setVelocity(Velocity(bV + normal * p * b.getMass()));
+
+    // Генерация частиц пыли (для доп. задания №3)
+    Point center_point = (a.getCenter() + b.getCenter()) * 0.5; // Центр столкновения (средняя точка между центрами шаров)
+    double base_radius = 10.0; // Базовый радиус пыли
+    auto len = [](const Point& p) {
+        return std::sqrt(p.x * p.x + p.y * p.y);
+    }; // Функция выяисления скорости шара
+    double speed_a = len(a.getVelocity().vector()); // Скорость шара a
+    double speed_b = len(b.getVelocity().vector()); // Скорость шара b
+    double base_speed = (speed_a + speed_b) * 0.5 * 6; // Базовая скорость пыли (средняя скорость столкнувшихся шаров * коэффициент)    
+    double lifetime = 0.5; // Время жизни частиц пыли
+    Color color = (speed_a < speed_b) ? a.getColor() : b.getColor(); // Цвет пыли (цвет менее быстрого шара)
+    // Случайный разброс параметров
+    static std::mt19937 rng(std::random_device{}());
+    static std::uniform_real_distribution<double> radius_disp(0.6, 1.4);  // Отклонения радиуса, +/- 40% 
+    static std::uniform_real_distribution<double> angle_disp(0.3, 0.3);  // Отклонения угла, +/- 3 рад
+    static std::uniform_real_distribution<double> speed_disp(0.7, 1.3);  // Отклонения скорости, +/- 30% 
+    for (int i = 0; i < 6; ++i) {
+        double radius = base_radius * radius_disp(rng);
+        double angle = i * (2.0 * M_PI / 6) + angle_disp(rng);
+        double speed = base_speed * speed_disp(rng);
+        Velocity velocity(speed, angle);
+        newDust.emplace_back(center_point, velocity, radius, color, lifetime);
+    }
+
 }

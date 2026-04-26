@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <istream>
 
 class Point {
   public:
@@ -28,4 +29,10 @@ inline Point operator/(const Point& p, double scalar) {
 inline double distance2(const Point& lhs, const Point& rhs) {
     const Point delta = lhs - rhs;
     return delta.x * delta.x + delta.y * delta.y;
+}
+
+// Функция чтения объектов из std::istream
+inline std::istream& operator>>(std::istream& stream, Point& p) {
+    stream >> p.x >> p.y;
+    return stream;
 }
