@@ -1,0 +1,1 @@
+./crc32_crack ../data/test_file.txt ../data/hacked_file.txt
