@@ -1,0 +1,33 @@
+# Команда запуска: docker-compose -p cv_cuda_c_containers up
+
+version: '3.8'
+
+services:
+  cv_dev:
+    # Сборка образа
+    build: .
+    container_name: cv_cuda_c
+    image: cv_cuda_c:ubuntu24-cuda12.8-devel-1.0
+    # Выделение оперативной памяти для контейнера
+    shm_size: '12g'
+    # Подключение доступа к GPU для контейнера
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    # Монтирование текущей директории внутрь контейнера
+    volumes:
+      - .:/cuda_findcontours_project
+    working_dir: /cuda_findcontours_project
+
+    # Интерактивный режим работы контейнера
+    tty: true
+    stdin_open: true
+    ipc: host
+    pid: host
