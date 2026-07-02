@@ -207,13 +207,15 @@ void k_detectBorderAndMask(const uchar* __restrict__ src,
         int sx = tx + 1, sy = ty + 1;  // Позиция текущего пикселя в shared memory
         uchar v = smem[sy * SW + sx];  // Значение текущего пикселя
 
-        if (!v) {
-            // Пиксель фоновый (v=0) -> проверка всех 8-и соседей через побитовый OR
-            uchar border = smem[(sy-1)*SW+(sx-1)] | smem[(sy-1)*SW+sx] |
-                           smem[(sy-1)*SW+(sx+1)] | smem[ sy   *SW+(sx-1)] |
-                           smem[ sy   *SW+(sx+1)] | smem[(sy+1)*SW+(sx-1)] |
-                           smem[(sy+1)*SW+sx]     | smem[(sy+1)*SW+(sx+1)];
-            result = border ? 1 : 0;  
+        if (v) {
+            // Пиксель объектный (v=1) -> проверка всех 8-и соседей через побитовый OR
+            uchar n00 = smem[(sy-1)*SW+(sx-1)], n01 = smem[(sy-1)*SW+sx],
+                  n02 = smem[(sy-1)*SW+(sx+1)], n10 = smem[ sy   *SW+(sx-1)],
+                  n12 = smem[ sy   *SW+(sx+1)], n20 = smem[(sy+1)*SW+(sx-1)],
+                  n21 = smem[(sy+1)*SW+sx],     n22 = smem[(sy+1)*SW+(sx+1)];
+            // Граничный, если хотя бы один сосед фоновый (=0)
+            uchar allFilled = (n00 && n01 && n02 && n10 && n12 && n20 && n21 && n22) ? 1 : 0;
+            result = allFilled ? 0 : 1;
         }
         // Если 1 -> есть объектный сосед -> граничный пиксель
         // Если v != 0 (объектный пиксель) - result остается 0.
@@ -243,6 +245,7 @@ void k_detectBorderAndMask(const uchar* __restrict__ src,
     1. __ballot_sync() - битовая маска потоков варпа с b != 0.
     2. __popc() - popcount для вычисления warp-level rank.
 */
+// Исправление по замечанию №5
 __global__
 void k_scatterCoords(const uchar* __restrict__ brd,
                      const int*   __restrict__ scan,
@@ -253,38 +256,12 @@ void k_scatterCoords(const uchar* __restrict__ brd,
 
     uchar b = brd[i];  // 1 = граничный пиксель, 0 = нет
 
-    // Warp ballot: битовая маска потоков варпа, у которых b != 0.
-    // 0xFFFFFFFF = все 32 потока варпа участвуют в голосовании.
-    unsigned mask_w = __ballot_sync(0xFFFFFFFF, b != 0);
-
-    if (b) {
-        int lane = threadIdx.x & 31;              // номер потока в варпе [0..31]
-        unsigned below = mask_w << (32 - lane);   // маска потоков с lane < текущего
-        int warp_rank = __popc(below);            // число граничных пикселей до меня в варпе
-
-        // Глобальный индекс в компактном массиве coords[].
-        // scan[] -- exclusive sum: scan[i] = число граничных пикселей до i.
-        int idx = scan[i] - 1;  // -1: используется inclusive-интерпретация
-        coords[idx] = make_int2(i % W, i / W);  // запись координат (x, y)
+    if (b) { // Граница внутри объекта
+        coords[scan[i]] = make_int2(i % W, i / W);
     }
 
 }
 
-// __global__
-// void k_scatterCoords(const uchar* __restrict__ brd,
-//                      const int*   __restrict__ scan,
-//                      int2* coords, int W, int N)
-// {
-//     int i = blockIdx.x * blockDim.x + threadIdx.x;
-//     if (i >= N) return;
-
-//     // Граничный пиксель записывает свои координаты по индексу из prefix sum.
-//     // scan[i] (ExclusiveSum) = количество граничных пикселей с индексами [0, i),
-//     // что является корректной позицией для записи текущего пикселя i.
-//     if (brd[i]) {
-//         coords[scan[i]] = make_int2(i % W, i / W);
-//     }
-// }
 
 // =====================================================================================================
 /*
@@ -527,6 +504,90 @@ __global__
 void k_iota(int* arr, int N) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N) arr[i] = i;  // arr[i] = i
+}
+
+
+// ================================================================================
+/*
+    CPU:: Вычисление площади по формуле Грина
+    Идентична внутренней логике cv::contourArea + cv::moments по контуру
+*/
+static void computePolygonAreaAndCentroid(
+    const std::vector<cv::Point>& contour,
+    double& area, cv::Point2f& centroid)
+{
+    double signedArea2 = 0.0;  // = 2 * signed area (накопленная сумма cross)
+    double sumCx = 0.0, sumCy = 0.0;
+    int n = (int)contour.size();
+
+    for (int i = 0; i < n; ++i) {
+        double x0 = contour[i].x,         y0 = contour[i].y;
+        double x1 = contour[(i+1)%n].x,   y1 = contour[(i+1)%n].y;
+        double cross = x0 * y1 - x1 * y0;
+        signedArea2 += cross;
+        sumCx += (x0 + x1) * cross;
+        sumCy += (y0 + y1) * cross;
+    }
+
+    double As = 0.5 * signedArea2;  // signed area
+
+    if (std::abs(As) < 1e-9) {
+        // Вырожденный случай — линия/точка, нет площади
+        area = 0.0;
+        centroid = contour.empty() ? cv::Point2f(0,0) : cv::Point2f(contour[0]);
+        return;
+    }
+
+    centroid = cv::Point2f((float)(sumCx / (6.0 * As)),
+                            (float)(sumCy / (6.0 * As)));
+    area = std::abs(As);
+}
+
+// ================================================================================
+/*
+    CPU:: Вычисление площади по формуле Пика
+    Позволяет вычислять площадь объектов толщиной в 1 пиксель, учитывает сам контур (который теперь находится внутри объекта)
+*/
+static void computePixelAccurateAreaAndCentroid(
+    const std::vector<cv::Point>& contour,
+    double& area, cv::Point2f& centroid)
+{
+    int n = (int)contour.size();
+    if (n == 0) { area = 0; centroid = {0,0}; return; }
+
+    // Вырожденный случай: 1-2 точки — полигон не определен,
+    // площадь = число уникальных пикселей
+    if (n < 3) {
+        double sx = 0, sy = 0;
+        for (auto& p : contour) { sx += p.x; sy += p.y; }
+        area = n;
+        centroid = cv::Point2f((float)(sx / n), (float)(sy / n));
+        return;
+    }
+
+    double signedArea2 = 0.0, sumCx = 0.0, sumCy = 0.0;
+    for (int i = 0; i < n; ++i) {
+        double x0 = contour[i].x,       y0 = contour[i].y;
+        double x1 = contour[(i+1)%n].x, y1 = contour[(i+1)%n].y;
+        double cross = x0 * y1 - x1 * y0;
+        signedArea2 += cross;
+        sumCx += (x0 + x1) * cross;
+        sumCy += (y0 + y1) * cross;
+    }
+    double As = 0.5 * signedArea2;
+
+    // Поправка Пика: shoelace-площадь (через центры пикселей) 
+    area = std::abs(As) + (double)n / 2.0 + 1.0;
+
+    if (std::abs(As) < 1e-9) {
+        // Вырожденная фигура (линия толщиной 1px) — центроид через отношение sumCx/(6*As)
+        double sx = 0, sy = 0;
+        for (auto& p : contour) { sx += p.x; sy += p.y; }
+        centroid = cv::Point2f((float)(sx / n), (float)(sy / n));
+    } else {
+        centroid = cv::Point2f((float)(sumCx / (6.0 * As)),
+                                (float)(sumCy / (6.0 * As)));
+    }
 }
 
 // ================================================================================
@@ -804,6 +865,7 @@ public:
            Итеративное объединение компонентовна границах тайлов.
            Цикл продолжается до тех пор, пока происходят изменения (changed=true).
         */
+        // Исправление по замечанию №4
         {
             int nTilesX = (W_ + BKE_TILE - 1) / BKE_TILE;
             int nTilesY = (H_ + BKE_TILE - 1) / BKE_TILE;
@@ -813,17 +875,27 @@ public:
             int blk = 256, grd = (total + blk - 1) / blk;
             const int maxIter = (max(nTilesX, nTilesY) + 1) / 2;
 
+            constexpr int K = 2;  // размер батча (подбирается эмпирически)
             bke_global_iters_ = 0;
-            for (int iter = 0; iter < maxIter; ++iter) {
-                *h_changed_ = 0;
-                CHECK_CUDA(cudaMemcpyAsync(d_changed_, h_changed_,
-                    sizeof(int), cudaMemcpyHostToDevice, stream));
-                k_bke_global<<<grd, blk, 0, stream>>>(
-                    d_brd_, d_L_, d_changed_, W_, H_);
+
+            for (int batchStart = 0; batchStart < maxIter; batchStart += K) {
+                int batchLen = min(K, maxIter - batchStart);
+
+                // Асинхронный сброс на device  (без host round-trip)
+                CHECK_CUDA(cudaMemsetAsync(d_changed_, 0, sizeof(int), stream));
+
+                // K launches подряд, флаг накапливает OR изменений за весь батч
+                for (int kk = 0; kk < batchLen; ++kk) {
+                    k_bke_global<<<grd, blk, 0, stream>>>(
+                        d_brd_, d_L_, d_changed_, W_, H_);
+                }
+
+                // Одна проверка на весь батч
                 CHECK_CUDA(cudaMemcpyAsync(h_changed_, d_changed_,
                     sizeof(int), cudaMemcpyDeviceToHost, stream));
                 CHECK_CUDA(cudaStreamSynchronize(stream));
-                ++bke_global_iters_;
+
+                bke_global_iters_ += batchLen;
                 if (!*h_changed_) break;
             }
         }
@@ -921,6 +993,7 @@ private:
         Группировка отсортированных пикселей в объекты и вычисление их параметров.
         Используется пул потоков для параллельной трассировки контуров.
      */
+    // Исправление по замечанию №6
     std::vector<ObjectStats> cpuGroupAndTrace(bool need_contours) {
         // Поиск границ групп с одинаковыми метками в отсортированном массиве
         std::vector<std::pair<int,int>> groups;
@@ -929,7 +1002,7 @@ private:
             int lbl = h_ol_sorted_[i];
             int j = i;
             while (j < h_nBrd_ && h_ol_sorted_[j] == lbl) ++j;
-            if (lbl >= 0 && (j - i) > 1)
+            if (lbl >= 0 ) // && (j - i) > 1
                 groups.push_back({i, j});
             i = j;
         }
@@ -945,14 +1018,14 @@ private:
                 auto [gs, ge] = groups[oi];
                 ObjectStats& st = result[oi];
                 st.label = h_ol_sorted_[gs];
-                st.area  = ge - gs;
 
+                int nBorderPts = ge - gs;
                 int minX = W_, maxX = 0, minY = H_, maxY = 0;
                 long long sumX = 0, sumY = 0;
 
                 // Буфер для координат текущего объекта (thread_local для избежания аллокаций)
                 thread_local std::vector<int2> tl_objCoords;
-                tl_objCoords.resize(st.area);
+                tl_objCoords.resize(nBorderPts);
                 
                 // Расчет bbox и накопление данных для центроида
                 for (int k = gs; k < ge; ++k) {
@@ -963,7 +1036,6 @@ private:
                     sumX += c.x; sumY += c.y;
                 }
                 st.bbox     = cv::Rect(minX, minY, maxX-minX+1, maxY-minY+1);
-                st.centroid = {(float)sumX/st.area, (float)sumY/st.area};
 
                 if (need_contours) {
                     // Построение локальной маски объекта для Moore Tracing
@@ -977,7 +1049,7 @@ private:
                         tl_mask.resize(maskSz);
                     std::fill(tl_mask.begin(), tl_mask.begin() + maskSz, 0);
 
-                    for (int k = 0; k < st.area; ++k) {
+                    for (int k = 0; k < nBorderPts; ++k) {
                         int lx = tl_objCoords[k].x - offX;
                         int ly = tl_objCoords[k].y - offY;
                         tl_mask[ly * bW + lx] = 1;
@@ -985,17 +1057,28 @@ private:
 
                     // Стартовая точка
                     int2 startPt = tl_objCoords[0];
-                    for (int k = 1; k < st.area; ++k) {
+                    for (int k = 1; k < nBorderPts; ++k) {
                         int2 c = tl_objCoords[k];
                         if (c.y < startPt.y || (c.y == startPt.y && c.x < startPt.x))
                             startPt = c;
                     }
+
+                    thread_local std::vector<cv::Point> tl_contour;
                     mooreTraceFromCoords(
-                        tl_objCoords.data(), st.area,
+                        tl_objCoords.data(), nBorderPts,
                         startPt.x, startPt.y,
                         offX, offY,
                         tl_mask.data(), bW, bH,
-                        st.contour);
+                        tl_contour);
+                    
+                    // Вычисление площади и центроида
+                    double area;
+                    cv::Point2f centroid;
+                    // computePolygonAreaAndCentroid(tl_contour, area, centroid); // по формуле Грина
+                    computePixelAccurateAreaAndCentroid(tl_contour, area, centroid); // по формуле Пика
+                    st.area = (int)std::round(area);
+                    st.centroid = centroid;
+                    st.contour = tl_contour;
                 }
             }));
         }
