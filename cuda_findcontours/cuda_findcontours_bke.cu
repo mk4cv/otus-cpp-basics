@@ -103,25 +103,13 @@ int bke_find_shared(int* sL, int x) {
     return x;
 }
 
-// Объединение двух компонент в shared memory.
-// root = min(index) - предотвращает циклы в дереве Union-Find.
-__device__ __forceinline__
-void bke_union_shared(int* sL, int a, int b) {
-    a = bke_find_shared(sL, a);
-    b = bke_find_shared(sL, b);
-    if (a == b) return;
-    int lo = min(a, b);
-    int hi = max(a, b);
-    if (sL[hi] > lo) sL[hi] = lo;
-}
+
 
 // =====================================================================================================
 /*
     Kernel 1: k_detectBorderAndMask
 
-    Определение граничных пикселей - фоновые пиксели (v=0), у которых хотя бы один из 8 соседей является объектным (v>0).
-    Это соответствует внешнему контуру объекта (аналог OpenCV RETR_EXTERNAL).
-    Фоновые граничные пиксели образуют замкнутую кривую вокруг объекта и удобны для трассировки методом Мура (обход снаружи объекта).
+    Определение граничных пикселей - объектные пиксели (v>0), у которых хотя бы один из 8 соседей является фоновым (v=0).
 
     Особенности:
     1. Shared memory с halo 1px: блок загружает (W+2)x(H+2) пикселей, устраняя повторные обращения к DRAM для соседних пикселей.
@@ -507,41 +495,6 @@ void k_iota(int* arr, int N) {
 }
 
 
-// ================================================================================
-/*
-    CPU:: Вычисление площади по формуле Грина
-    Идентична внутренней логике cv::contourArea + cv::moments по контуру
-*/
-static void computePolygonAreaAndCentroid(
-    const std::vector<cv::Point>& contour,
-    double& area, cv::Point2f& centroid)
-{
-    double signedArea2 = 0.0;  // = 2 * signed area (накопленная сумма cross)
-    double sumCx = 0.0, sumCy = 0.0;
-    int n = (int)contour.size();
-
-    for (int i = 0; i < n; ++i) {
-        double x0 = contour[i].x,         y0 = contour[i].y;
-        double x1 = contour[(i+1)%n].x,   y1 = contour[(i+1)%n].y;
-        double cross = x0 * y1 - x1 * y0;
-        signedArea2 += cross;
-        sumCx += (x0 + x1) * cross;
-        sumCy += (y0 + y1) * cross;
-    }
-
-    double As = 0.5 * signedArea2;  // signed area
-
-    if (std::abs(As) < 1e-9) {
-        // Вырожденный случай — линия/точка, нет площади
-        area = 0.0;
-        centroid = contour.empty() ? cv::Point2f(0,0) : cv::Point2f(contour[0]);
-        return;
-    }
-
-    centroid = cv::Point2f((float)(sumCx / (6.0 * As)),
-                            (float)(sumCy / (6.0 * As)));
-    area = std::abs(As);
-}
 
 // ================================================================================
 /*
@@ -1037,6 +990,7 @@ private:
                 }
                 st.bbox     = cv::Rect(minX, minY, maxX-minX+1, maxY-minY+1);
 
+                // Трассировка контура и вычисление площади / центроида выполняется опционально
                 if (need_contours) {
                     // Построение локальной маски объекта для Moore Tracing
                     int offX = minX - 1, offY = minY - 1;
@@ -1074,7 +1028,6 @@ private:
                     // Вычисление площади и центроида
                     double area;
                     cv::Point2f centroid;
-                    // computePolygonAreaAndCentroid(tl_contour, area, centroid); // по формуле Грина
                     computePixelAccurateAreaAndCentroid(tl_contour, area, centroid); // по формуле Пика
                     st.area = (int)std::round(area);
                     st.centroid = centroid;
